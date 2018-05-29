@@ -4,10 +4,29 @@ export default class Player {
         this.data   = data
     }
 
+    async backfillSeason(season) {
+        const {relationships}  = await this.data.loadSeason(season)
+        const relationshipData = Object.values(relationships)
+
+        relationshipData.forEach(({data}) => {
+            try {
+                if (data instanceof Array) {
+                    data.forEach(match => {
+                        this.data.relationships.matches.data.push(match)
+                    })
+                }
+            } catch(e) {
+                console.log(e)
+            }
+        })
+
+        return
+    }
+
     format() {
         const {relationships, attributes, links, _id} = this.data;
-        const matches = relationships.matches.data.map(m => m.id)
-        const id = this.record.id ? this.record.id : _id;
+        const matches                                 = relationships.matches.data.map(m => m.id)
+        const id                                      = this.record.id ? this.record.id : _id
 
         return {
             matches,
@@ -19,7 +38,6 @@ export default class Player {
     }
 
     filterMatches() {
-        // console.log(this)
         try {
             const results = this
                 .data

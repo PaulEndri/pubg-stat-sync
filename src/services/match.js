@@ -1,6 +1,8 @@
 import Match from '../models/match'
 import Queue from '../models/queue'
 import MatchRecord from '../models/matchRecord'
+import {Match as PubgMatch} from 'apubg-sdk'
+import fs from 'fs'
 
 export default class MatchService {
     constructor(data, record) {
@@ -23,10 +25,8 @@ export default class MatchService {
         }
     }
 
-    generateMatchRecords(syncingPlayers, data) {
+    generateMatchRecords(data) {
         data.players.forEach(player => {
-            if(syncingPlayers.indexOf(player.playerId) < 0) return
-
             console.log(`Creating match record for ${player.name}`)
 
             MatchRecord.create({
@@ -38,10 +38,7 @@ export default class MatchService {
         })
     }
 
-    /**
-     * @param {array} syncingPlayers list of players to sync
-     */
-    async syncMatch(syncingPlayers) {
+    async syncMatch() {
         const existingRecord = await Match.findOne({id: this.data.id})
 
         if(existingRecord !== null) {
@@ -50,7 +47,7 @@ export default class MatchService {
 
         const data = this.format()
 
-        this.generateMatchRecords(syncingPlayers, data)
+        this.generateMatchRecords(data)
 
         return await Match.create(data)
     }
@@ -83,5 +80,12 @@ export default class MatchService {
         const results = await Promise.all(promises)
 
         return results.filter(r => r)
+    }
+
+    static async saveTelemetry(id) {
+        const match = await PubgMatch.get(id)
+        const telemetry = await match.getTelemetry(true)
+
+        return fs.writeFileSync(`data/${id}.json`, JSON.stringify(telemetry))
     }
 }
